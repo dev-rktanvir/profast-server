@@ -28,6 +28,7 @@ async function run() {
 
         // Database Collections
         const parcelsCollection = client.db('proFastDB').collection('parcels')
+        const paymentsCollection = client.db('proFastDB').collection('payments')
 
         // Api for add parcels
         app.post('/parcels', async (req, res) => {
@@ -61,6 +62,33 @@ async function run() {
             const query = { _id: new ObjectId(id) }
             const result = await parcelsCollection.deleteOne(query);
             res.send(result);
+        })
+
+        // Record payment & update parcel status
+        app.post('/payments', async (req, res) => {
+            const {parcelId, email, amount, paymentMethod, transactionId} = req.body;
+
+            // update parcels payment status
+            const updatePayment = await parcelsCollection.updateOne(
+                {_id: new ObjectId(parcelId)},
+                {$set: {
+                    payment_status: "paid"
+                }}
+            )
+
+            // Insart payment record
+            const paymentDoc = {
+                parcelId,
+                email,
+                amount,
+                paymentMethod,
+                transactionId,
+                paid_at_string: new Date().toISOString(),
+                paid_at: new Date(),
+            }
+
+            const paymentResult = await paymentsCollection.insertOne(paymentDoc);
+            res.send(paymentResult)
         })
 
         app.post("/create-payment-intent", async (req, res) => {
