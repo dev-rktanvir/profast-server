@@ -3,7 +3,7 @@ const express = require('express')
 const cors = require('cors')
 const app = express()
 const port = process.env.PORT || 5000
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 // Middlewares
 app.use(cors());
@@ -33,6 +33,25 @@ async function run() {
             const newParcels = req.body;
             const result = await parcelsCollection.insertOne(newParcels)
             res.send(result)
+        })
+
+        // Api for get parcels
+        app.get('/parcels', async (req, res) => {
+            const email = req.query.email;
+            const query = email ? { userEmail: email } : {};
+            const options = {
+                sort: { createdAt: -1 }
+            }
+            const result = await parcelsCollection.find(query, options).toArray();
+            res.send(result);
+        })
+
+        // Api for delete parcels
+        app.delete('/parcels/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = {_id: new ObjectId(id)}
+            const result = await parcelsCollection.deleteOne(query);
+            res.send(result);
         })
 
 
