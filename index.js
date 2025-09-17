@@ -4,6 +4,7 @@ const cors = require('cors')
 const app = express()
 const port = process.env.PORT || 5000
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+const stripe = require("stripe")(process.env.PAYMENT_KEY);
 
 // Middlewares
 app.use(cors());
@@ -46,13 +47,40 @@ async function run() {
             res.send(result);
         })
 
+        // Api for get parcels by Id
+        app.get('/parcels/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await parcelsCollection.findOne(query)
+            res.send(result);
+        })
+
         // Api for delete parcels
         app.delete('/parcels/:id', async (req, res) => {
             const id = req.params.id;
-            const query = {_id: new ObjectId(id)}
+            const query = { _id: new ObjectId(id) }
             const result = await parcelsCollection.deleteOne(query);
             res.send(result);
         })
+
+        app.post("/create-payment-intent", async (req, res) => {
+            const amountInCents = req.body.amountInCents;
+            try {
+                const paymentIntent = await stripe.paymentIntents.create({
+                    amount: amountInCents, // amount in cents, e.g. $10.00
+                    currency: "usd",
+                    automatic_payment_methods: {
+                        enabled: true,
+                    },
+                });
+
+                res.send({
+                    clientSecret: paymentIntent.client_secret,
+                });
+            } catch (error) {
+                res.status(400).send({ error: error.message });
+            }
+        });
 
 
         // Send a ping to confirm a successful connection
